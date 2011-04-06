@@ -1,0 +1,172 @@
+#include <lighting.sh>
+#include <shadows.sh>
+#include <tools.sh>
+
+float4x4 View;
+
+float4 MatEmissive;
+float4 MatDiffuse;
+float4 MatSpecular;
+float4 MatReflexions;
+float4 MatRefraction;
+float  MatRefrScale;
+float  MatRefrIndex;
+float  MatShininess;
+
+float4 FogColor;
+
+float2 DynamicShadowStart;
+float2 DynamicShadowRange;
+float DynamicShadowOpacity;
+
+sampler2D SamplerDiffuse;
+sampler2D SamplerSpecular;
+sampler2D SamplerNormal;
+sampler2D SamplerDynamicShadow0;
+sampler2D SamplerDynamicShadow1;
+sampler2D SamplerRefraction;
+samplerCUBE SamplerReflexions;
+
+float WaterLevel;
+
+bool IsDebugNormal : register(b1);
+bool IsDebugT : register(b2);
+bool IsDebugB : register(b3);
+bool IsDebugN : register(b4);
+bool IsDebugUV : register(b5);
+bool IsDebugMIP : register(b6);
+sampler2D SamplerDebugMIP;
+
+float4 ps_main(
+
+   float4 tcoords2  : TEXCOORD0,
+   float4 normalFog : TEXCOORD1,
+   float3 eye       : TEXCOORD2,  // point to eye
+
+#if TSN_FLAG || DEBUG_FLAG
+   float3 tangent   : TEXCOORD4,
+   float3 bitangent : TEXCOORD5,
+#endif
+
+#ifdef SHADOW_FLAG
+   float4 lightPos0 : TEXCOORD6,
+   float4 lightPos1 : TEXCOORD7,
+#endif
+#if HQ_PREVIEW_FLAG
+   float4 lightPosS : TEXCOORD8,
+#endif
+#if REFRACTIONS_FLAG
+   float4 clipPos   : TEXCOORD6,
+#endif
+   float3 worldPos  : TEXCOORD3
+
+) : COLOR0
+{
+    float2 texcoords = tcoords2.xy;
+    
+#if WATER_CLIP_FLAG
+   clip(worldPos.y - WaterLevel);
+#endif
+
+#if TSN_FLAG || DEBUG_FLAG
+   float3 T = normalize(tangent);
+   float3 B = normalize(bitangent);
+   float3 N = normalize(normalFog.xyz);
+#endif
+   
+#if TSN_FLAG
+   // Tangent Space Normal
+   float3 tsn = getPixelNormal(SamplerNormal, texcoords);
+   float3 normal = normalize(tsn.x * T + tsn.y * B + tsn.z * N);
+#else
+   float3 normal = normalize(normalFog.xyz);
+#endif
+    
+   float eyeDist = length(eye);
+   eye = normalize(eye);
+   
+   float4 mdiffuse = MatDiffuse * tex2D(SamplerDiffuse, texcoords);
+   float4 mspecular = MatSpecular * tex2D(SamplerSpecular, texcoords);
+   
+#if STATIC_PIXEL_LIGHTING_FLAG
+    LightContrib lighting = lightingTerm(normal, eye, worldPos, mdiffuse, mspecular, MatShininess, tcoords2.zw);
+#else
+#ifdef HQ_PREVIEW_FLAG
+    float staticShadowVal = staticShadowTerm(lightPosS);
+    LightContrib lighting = lightingTerm(normal, eye, worldPos, mdiffuse, mspecular, MatShininess, texcoords, staticShadowVal);
+#else
+    LightContrib lighting = lightingTerm(normal, eye, worldPos, mdiffuse, mspecular, MatShininess, texcoords);
+#endif
+#endif
+
+
+#ifdef SHADOW_FLAG
+
+    float2 shadowTex0 = lightPos0.xy / lightPos0.w + float2( 0.5, 0.5 );
+    float2 shadowTex1 = lightPos1.xy / lightPos1.w + float2( 0.5, 0.5 );
+
+    //float2 shadowTex0 = 0.5 * lightPos0.xy / lightPos0.w + float2( 0.5, 0.5 );
+    //float2 shadowTex1 = 0.5 * lightPos1.xy / lightPos1.w + float2( 0.5, 0.5 );
+
+    shadowTex0.y = 1.0f - shadowTex0.y;
+    shadowTex1.y = 1.0f - shadowTex1.y;
+    
+    float2 s = clamp((lightPos0.zz - DynamicShadowStart) / DynamicShadowRange, 0.0, 1.0);
+
+    float shadowVal0 = tex2D(SamplerDynamicShadow0, shadowTex0).x;
+    float shadowVal1 = lerp(tex2D(SamplerDynamicShadow1, shadowTex1).x, 1.0, s.y);
+
+    float shadowVal = lerp(shadowVal0, shadowVal1, s.x);
+    shadowVal = lerp(DynamicShadowOpacity, 1.0, shadowVal);
+
+    lighting.diffuse *= shadowVal;
+    lighting.specular *= shadowVal;
+#endif
+
+#if REFRACTIONS_FLAG
+    float3 rv = refract(-eye, normal, MatRefrIndex);
+    float3 nv = mul((float3x3)View, rv);
+    float refrs = MatRefrScale / eyeDist;
+    float2 refrVec = nv.xy * float2(refrs, -refrs);
+    float2 texproj = clipPos.xy / clipPos.w;
+    float4 refrCol = tex2D(SamplerRefraction, texproj + refrVec);
+    refrCol.rgb *= MatRefraction.rgb;
+    
+    lighting.diffuse.rgb = lerp(lighting.diffuse.rgb, refrCol.rgb, MatRefraction.a);
+#endif
+
+#if SPECULAR_FLAG
+   float4 result = MatEmissive + lighting.diffuse + lighting.specular;
+#else
+   float4 result = MatEmissive + lighting.diffuse;
+#endif
+
+#ifdef REFLEXIONS_MAP_FLAG
+   float3 R2 = reflect(-eye, normal);
+   result += MatReflexions * texCUBE(SamplerReflexions, R2);
+#endif
+
+   result = lerp(result, FogColor, normalFog.w);
+   result.a = mdiffuse.a;
+
+#if DEBUG_FLAG
+    if(IsDebugNormal)
+        return float4(pack(normal), 1.0);
+    if(IsDebugT)
+        return float4(pack(T), 1.0);
+    if(IsDebugB)
+        return float4(pack(B), 1.0);
+    if(IsDebugN)
+        return float4(pack(N), 1.0);
+    if(IsDebugUV)
+        return float4(texcoords, 0.0, 1.0);
+    if(IsDebugMIP)
+        return float4(tex2D(SamplerDebugMIP, texcoords).xyz, 1.0);
+        
+    return float4(0.0, 1.0, 0.0, 1.0);
+#else
+    return result;
+#endif
+}
+
+

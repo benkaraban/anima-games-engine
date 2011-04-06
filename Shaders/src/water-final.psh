@@ -1,0 +1,132 @@
+#include <lighting.sh>
+#include <tools.sh>
+
+float4 FogColor;
+
+float4 WaveU;
+float4 WaveV;
+
+float4 WaveScaleU;
+float4 WaveScaleV;
+float4 WaveAmplitude;
+
+float4 WaterDiffuse;
+float4 WaterSpecular;
+float  WaterShininess;
+
+float2 PixelAlign;
+
+float  ReflScale;
+float  RefrScale;
+
+float FresnelClamp;
+float FresnelPower;
+
+sampler2D SamplerDiffuse;
+
+sampler2D SamplerWave0;
+sampler2D SamplerWave1;
+sampler2D SamplerWave2;
+sampler2D SamplerWave3;
+
+sampler2D SamplerReflection;
+sampler2D SamplerRefraction;
+
+float3 getNormal(float2 texcoords)
+{
+    float4 u = WaveScaleU * (texcoords.xxxx + WaveU);
+    float4 v = WaveScaleV * (texcoords.yyyy + WaveV);
+    
+    float3 n0 = WaveAmplitude.x * getPixelNormal(SamplerWave0, float2(u.x, v.x), IS_NORMAL_DXT5_0);
+    float3 n1 = WaveAmplitude.y * getPixelNormal(SamplerWave1, float2(u.y, v.y), IS_NORMAL_DXT5_1);
+    float3 n2 = WaveAmplitude.z * getPixelNormal(SamplerWave2, float2(u.z, v.z), IS_NORMAL_DXT5_2);
+    float3 n3 = WaveAmplitude.w * getPixelNormal(SamplerWave3, float2(u.w, v.w), IS_NORMAL_DXT5_3);
+   
+#if WATER_ADVANCED_FLAG
+    return normalize(n0 + n1 + n2 + n3);
+#else
+    return normalize(n0 + n1);
+#endif
+}
+
+float getFresnelFast(float NdotL, float fresnelBias, float fresnelPow)
+{
+    float facing = (1.0 - NdotL);
+    facing *= facing;
+    facing *= facing;
+    return  max(lerp(facing, 0.0, fresnelBias), 0.0);
+}
+
+float4 ps_main(
+   float3 texcoordsFog : TEXCOORD0,
+   float3 worldPos     : TEXCOORD1,
+   float3 eye          : TEXCOORD2,   // point to eye
+   float4 clipPos      : TEXCOORD3
+ 
+) : COLOR0
+{
+    eye = normalize(eye);
+    float fog = texcoordsFog.z;
+    float2 texcoords = texcoordsFog.xy;
+    float3 normal = getNormal(worldPos.xz);
+
+    float2 reflVec = normal.xy * float2(ReflScale, ReflScale);
+    float2 refrVec = normal.xy * float2(RefrScale, RefrScale);
+   
+#if WATER_ADVANCED_FLAG
+    // normal => World    
+    normal.xyz = float3(normal.x, normal.z, -normal.y);
+
+    LightContrib lighting = lightingTerm(normal, eye, worldPos, float4(0.0, 0.0, 0.0, 0.0), WaterSpecular, WaterShininess);
+    normal = normalize(normal * float3(ReflScale, 1.0, ReflScale));
+    float4 result = lighting.specular;
+#else
+    normal = normalize(float3(ReflScale * normal.x, normal.z, -ReflScale * normal.y));
+    float4 result = float4(0.0, 0.0, 0.0, 1.0);
+#endif
+
+    float2 texproj = clipPos.xy / clipPos.w;
+    texproj += PixelAlign;
+    
+    reflVec.y =  abs(reflVec.y) + 0.002;
+    
+    float4 reflCol = tex2D(SamplerReflection, texproj + reflVec);
+    float4 origCol = tex2D(SamplerRefraction, texproj);
+    float4 refrCol = tex2D(SamplerRefraction, texproj + refrVec);
+    if(refrCol.a > 0.0)
+        refrCol = origCol;
+   
+#if WATER_ADVANCED_FLAG
+    float NdotL = max(dot(eye, normal), 0);
+    float fresnel = getFresnel(NdotL, FresnelClamp, FresnelPower);
+#else
+    float facing = 1.0 - dot(eye, normal);
+    facing *= facing;
+    facing *= facing;
+    
+    float fresnel = clamp(facing + FresnelClamp, 0.0, 1.0);
+#endif
+
+    float4 waterColor = WaterDiffuse * tex2D(SamplerDiffuse, texcoords);
+
+#if WATER_REFRAC_FLAG
+    result.rgb += lerp(refrCol.rgb, waterColor.rgb, waterColor.a);
+#else
+    result.rgb += waterColor.rgb;
+    result.a = waterColor.a;
+#endif
+
+#if WATER_REFLEC_FLAG
+#if WATER_ADVANCED_FLAG
+    result = lerp(result, reflCol, fresnel);
+    result = lerp(result, FogColor, fog);
+#else
+    result += fresnel * reflCol;
+    result = lerp(result, FogColor, fog);
+#endif
+#endif
+
+    return result;
+}
+
+

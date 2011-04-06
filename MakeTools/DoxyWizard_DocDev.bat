@@ -1,0 +1,1 @@
+doxywizard %LOADED_SOURCE_DIR%\Doc\DocDev.doxyfile

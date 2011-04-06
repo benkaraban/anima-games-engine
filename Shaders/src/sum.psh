@@ -1,0 +1,16 @@
+float2 SourceSize;
+
+sampler2D SamplerImage;
+
+float4 ps_main(
+    float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    float2 unnormalized = texcoords * SourceSize;
+    float4 v00 = tex2D(SamplerImage, (unnormalized + float2(-0.5, -0.5)) / SourceSize);
+    float4 v10 = tex2D(SamplerImage, (unnormalized + float2( 0.5, -0.5)) / SourceSize);
+    float4 v01 = tex2D(SamplerImage, (unnormalized + float2(-0.5,  0.5)) / SourceSize);
+    float4 v11 = tex2D(SamplerImage, (unnormalized + float2( 0.5,  0.5)) / SourceSize);
+
+    return 0.25 * (v00 + v10 + v01 + v11);
+}

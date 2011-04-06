@@ -1,0 +1,7 @@
+
+float4 pixelFn(float2 texcoord : TEXCOORD0,
+               float3 normal   : TEXCOORD1) : COLOR
+{
+    return float4((0.5 + 0.5 * normal), 0.0);
+    //return float4(0.0, texcoord.x, texcoord.y, 0.0);
+}

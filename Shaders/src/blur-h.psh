@@ -1,0 +1,54 @@
+float  Scale = 1.0 / 256.0;
+
+#define KERNEL_SIZE 13
+
+static float Delta[KERNEL_SIZE] = 
+{ 
+  -6.0,
+  -5.0,
+  -4.0,
+  -3.0,
+  -2.0,
+  -1.0,
+   0.0,
+   1.0,
+   2.0,
+   3.0,
+   4.0,
+   5.0,
+   6.0
+};
+
+static float Weight[KERNEL_SIZE] = 
+{ 
+    0.002216,
+    0.008764,
+    0.026995,
+    0.064759,
+    0.120985,
+    0.176033,
+    0.199471,
+    0.176033,
+    0.120985,
+    0.064759,
+    0.026995,
+    0.008764,
+    0.002216,
+};
+
+sampler2D SamplerImage;
+
+float4 ps_main(
+    float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    float4 result = float4(0.0, 0.0, 0.0, 0.0);
+    
+    for(int i=0; i < KERNEL_SIZE; i++)
+    {
+        float2 tc = float2(texcoords.x + Scale * Delta[i], texcoords.y);
+        result += Weight[i] * tex2D(SamplerImage, tc);
+    }
+
+    return result;
+}

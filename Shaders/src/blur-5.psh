@@ -1,0 +1,57 @@
+float2 DirectionScale;
+
+#define KERNEL_SIZE 5
+
+static float Delta[KERNEL_SIZE] = 
+{ 
+  -2.0,
+  -1.0,
+   0.0,
+   1.0,
+   2.0,
+};
+
+#if GAUSSIAN_FLAG
+
+#define KERNEL_SUM 5.0
+
+static float Weight[KERNEL_SIZE] = 
+{ 
+    1.0 / KERNEL_SUM,
+    1.0 / KERNEL_SUM,
+    1.0 / KERNEL_SUM,
+    1.0 / KERNEL_SUM,
+    1.0 / KERNEL_SUM,
+};
+
+#else
+
+#define KERNEL_SUM 16.0
+
+static float Weight[KERNEL_SIZE] = 
+{ 
+    1.0 / KERNEL_SUM,
+    4.0 / KERNEL_SUM,
+    6.0 / KERNEL_SUM,
+    4.0 / KERNEL_SUM,
+    1.0 / KERNEL_SUM,
+};
+
+#endif
+
+sampler2D SamplerImage;
+
+float4 ps_main(
+    float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    float4 result = float4(0.0, 0.0, 0.0, 0.0);
+    
+    for(int i=0; i < KERNEL_SIZE; i++)
+    {
+        float2 tc = texcoords + DirectionScale * Delta[i];
+        result += Weight[i] * tex2D(SamplerImage, tc);
+    }
+        
+    return result;
+}

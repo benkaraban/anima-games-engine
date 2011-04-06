@@ -1,0 +1,11 @@
+AG_PROJECT(HOOCLIENTBOT HCB)
+
+set (HOOCLIENTBOT_ALL_PATH "/" )
+
+#on regroupe l'ensemble des fichiers includes et sources
+ag_create_incFile_srcFile(HOOCLIENTBOT_ALL_PATH HOOCLIENTBOT_INC_FILES HOOCLIENTBOT_SRC_FILES)
+
+AG_MAKE_PRECOMPILED_HEADERS(HOOClientBOT HOOCLIENTBOT_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/Prelude.h)
+
+add_executable (HOOClientBOT ${HOOCLIENTBOT_INC_FILES} ${HOOCLIENTBOT_SRC_FILES})
+target_link_libraries (HOOClientBOT Core Network HOOUserProtocol)

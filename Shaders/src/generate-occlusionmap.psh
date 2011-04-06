@@ -1,0 +1,7 @@
+
+float4 ps_main(
+     float  occlusion   : TEXCOORD0
+) : COLOR
+{
+    return float4(occlusion, occlusion, occlusion, 1.0);
+}

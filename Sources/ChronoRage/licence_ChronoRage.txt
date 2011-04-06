@@ -1,0 +1,11 @@
+END-USER LICENSE AGREEMENT
+
+PLEASE READ THE TERMS CAREFULLY BEFORE CLICKING THE "YES" BUTTON, AS BY CLICKING THE "YES" BUTTON YOU ACKNOWLEDGE THAT YOU HAVE READ THIS AGREEMENT, UNDERSTAND IT AND AGREE TO BE BOUND BY ITS TERMS AND CONDITIONS.
+
+1. Grant of License. CHRONO RAGE is licensed to you, not sold, by ANIMA GAMES, and its use is subject to this license.  ANIMA GAMES grants to you a limited, personal, non-exclusive right to use CHRONO RAGE in the manner described in the user documentation.  You may load CHRONO RAGE only onto the hard drive of a single machine and run CHRONO RAGE from only that hard drive.  You may permanently transfer all rights ANIMA GAMES grants to you in this license, provided you retain no copies, you transfer all of CHRONO RAGE, and the recipient reads and accepts this license.  ANIMA GAMES reserves all rights not expressly granted to you by this Agreement.
+
+2. Restrictions. ANIMA GAMES own the title, copyright, and other intellectual property rights in CHRONO RAGE.  CHRONO RAGE contains copyrighted material and other proprietary material.  You may not decompile, modify, reverse engineer, disassemble or otherwise reproduce CHRONO RAGE.  You may not copy, rent, lease, sublicense or distribute CHRONO RAGE.  You may not electronically transmit CHRONO RAGE from one computer to another or over a network.  Any attempt to transfer any of the rights, duties or obligations hereunder is void.  
+
+3. Termination.  This License is effective until terminated.  You may terminate this License at any time by destroying CHRONO RAGE.  This License will terminate immediately without notice from ANIMA GAMES if you fail to comply with any provision of this license.  Upon termination, you must destroy CHRONO RAGE.
+
+4. Limitation of Liability.  UNDER NO CIRCUMSTANCES, INCLUDING NEGLIGENCE, SHALL ANIMA GAMES BE LIABLE FOR ANY INCIDENTAL, SPECIAL OR CONSEQUENTIAL DAMAGES IN CONNECTION WITH CHRONO RAGE, INCLUDING THOSE THAT RESULT FROM THE USE OF OR INABILITY TO USE CHRONO RAGE, EVEN IF ANIMA GAMES HAS BEEN ADVISED OF THE POSSIBILITY OF THOSE DAMAGES.  IN NO EVENT SHALL ANIMA GAMES' TOTAL LIABILITY TO YOU FOR ALL DAMAGES, LOSSES AND CAUSES OF ACTION (WHETHER IN CONTRACT, TORT OR OTHERWISE) EXCEED THE AMOUNT PAID BY YOU FOR CHRONO RAGE.

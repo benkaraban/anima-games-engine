@@ -1,0 +1,12 @@
+float SourceFactor;
+
+sampler2D SamplerTexture;
+
+float4 ps_main(
+     float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    float4 basec = tex2D(SamplerTexture, texcoords);
+    basec.a = SourceFactor;
+    return basec;
+}

@@ -1,0 +1,9 @@
+sampler2D SamplerTexture1;
+sampler2D SamplerTexture2;
+
+float4 ps_main(
+     float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    return tex2D(SamplerTexture1, texcoords) + tex2D(SamplerTexture2, texcoords);
+}

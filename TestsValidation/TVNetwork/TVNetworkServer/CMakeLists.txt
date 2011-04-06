@@ -1,0 +1,11 @@
+AG_PROJECT(TVNETWORKSERVER TVS)
+
+set (TVNETWORKSERVER_ALL_PATH "/" )
+
+#on regroupe l'ensemble des fichiers includes et sources
+ag_create_incFile_srcFile(TVNETWORKSERVER_ALL_PATH TVNETWORKSERVER_INC_FILES TVNETWORKSERVER_SRC_FILES)
+
+#AG_MAKE_PRECOMPILED_HEADERS(TVNetworkServer TVNETWORKSERVER_SRC_FILES)
+
+add_executable (TVNetworkServer ${TVNETWORKSERVER_INC_FILES} ${TVNETWORKSERVER_SRC_FILES})
+target_link_libraries (TVNetworkServer Core Network)

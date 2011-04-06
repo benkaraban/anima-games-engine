@@ -1,0 +1,16 @@
+AG_PROJECT(TVAUDIOOPENAL TVA)
+
+set (TVAUDIOOPENAL_ALL_PATH "/" )
+
+IF( WIN32 )
+   SET( WIN32_EXECUTABLE WIN32 )
+ENDIF( WIN32 )
+
+#on regroupe l'ensemble des fichiers includes et sources
+ag_create_incFile_srcFile(TVAUDIOOPENAL_ALL_PATH TVAUDIOOPENAL_INC_FILES TVAUDIOOPENAL_SRC_FILES)
+
+AG_MAKE_PRECOMPILED_HEADERS(TVAudioOpenAL TVAUDIOOPENAL_SRC_FILES)
+
+add_executable (TVAudioOpenAL ${TVAUDIOOPENAL_INC_FILES} ${TVAUDIOOPENAL_SRC_FILES})
+target_link_libraries (TVAudioOpenAL Core Audio AudioOpenAL)
+

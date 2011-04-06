@@ -1,0 +1,51 @@
+float2 DirectionScale;
+
+#define KERNEL_SIZE 5
+
+static float Delta[KERNEL_SIZE] = 
+{ 
+  -2.0,
+  -1.0,
+   0.0,
+   1.0,
+   2.0,
+};
+
+#define KERNEL_SUM 5.0
+
+static float Weight[KERNEL_SIZE] = 
+{ 
+    1.0 / KERNEL_SUM,
+    1.0 / KERNEL_SUM,
+    1.0 / KERNEL_SUM,
+    1.0 / KERNEL_SUM,
+    1.0 / KERNEL_SUM,
+};
+
+float logConv(float x0, float X, float y0, float Y)
+{
+    return (X + log(x0 + (y0 * exp(Y - X))));
+}
+
+sampler2D SamplerImage;
+
+float4 ps_main(
+    float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    int i;
+    float sample[KERNEL_SIZE];
+    
+    for(i=0; i < KERNEL_SIZE; i++)
+    {
+        float2 tc = texcoords + DirectionScale * Delta[i];
+        sample[i] = tex2D(SamplerImage, tc).x;
+    }
+    
+    float result = logConv(Weight[0], sample[0], Weight[1], sample[1]);
+    
+    for(i=2; i < KERNEL_SIZE; i++)
+        result = logConv(1.0, result, Weight[i], sample[i]);
+        
+    return float4(result, 0.0, 0.0, 0.0);
+}
