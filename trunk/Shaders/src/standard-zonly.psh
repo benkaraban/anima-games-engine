@@ -1,0 +1,15 @@
+
+float WaterLevel;
+
+float4 ps_main(
+   float3 worldPos  : TEXCOORD0
+) : COLOR0
+{
+#ifdef WATER_CLIP_FLAG
+   clip(worldPos.y - WaterLevel);
+#endif
+    
+   return float4(1.0, 0.0, 0.0, 0.0);
+}
+
+

@@ -1,0 +1,68 @@
+float2 Center;
+float2 Scale;
+
+#define KERNEL_SIZE 9
+
+static float Delta[KERNEL_SIZE] = 
+{ 
+  -4.0,
+  -3.0,
+  -2.0,
+  -1.0,
+   0.0,
+   1.0,
+   2.0,
+   4.0,
+   5.0,
+};
+
+#if GAUSSIAN_FLAG
+
+static float Weight[KERNEL_SIZE] = 
+{ 
+   0.05,
+   0.09,
+   0.12,
+   0.15,
+   0.16,
+   0.15,
+   0.12,
+   0.09,
+   0.05,
+};
+
+#else
+
+static float Weight[KERNEL_SIZE] = 
+{ 
+    1.0 / KERNEL_SIZE,
+    1.0 / KERNEL_SIZE,
+    1.0 / KERNEL_SIZE,
+    1.0 / KERNEL_SIZE,
+    1.0 / KERNEL_SIZE,
+    1.0 / KERNEL_SIZE,
+    1.0 / KERNEL_SIZE,
+    1.0 / KERNEL_SIZE,
+    1.0 / KERNEL_SIZE,
+};
+
+#endif
+
+sampler2D SamplerImage;
+
+float4 ps_main(
+    float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    float2 pos = texcoords - Center;
+    float2 dirScale = Scale * pos;
+    float4 result = float4(0.0, 0.0, 0.0, 0.0);
+    
+    for(int i=0; i < KERNEL_SIZE; i++)
+    {
+        float2 tc = texcoords + dirScale * Delta[i];
+        result += Weight[i] * tex2D(SamplerImage, tc);
+    }
+        
+    return result;
+}

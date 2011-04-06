@@ -1,0 +1,9 @@
+sampler2D SamplerTexture;
+
+float4 ps_main(
+     float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    float4 c = tex2D(SamplerTexture, texcoords);
+    return c.xxxx;
+}

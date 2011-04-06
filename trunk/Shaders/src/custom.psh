@@ -1,0 +1,69 @@
+#include <tools.sh>
+
+float4 CustomColor;
+float RefrScale;
+
+sampler2D SamplerTexture0;
+sampler2D SamplerTexture1;
+sampler2D SamplerTexture2;
+sampler2D SamplerRefraction;
+
+float4 ps_main(
+    float2 tcoords0 : TEXCOORD0,
+    float2 tcoords1 : TEXCOORD1,
+    float2 tcoords2 : TEXCOORD2,
+    
+#if REFRACTION_FLAG
+    float4 clipPos   : TEXCOORD3,
+    float  eyeDist   : TEXCOORD4
+#else
+    float  fog       : TEXCOORD3
+#endif
+
+) : COLOR0
+{
+#if REFRACTION_FLAG
+    //-----------------------------------------------------------------
+    // NORMALS
+    //-----------------------------------------------------------------
+
+    float3 n0 = getPixelNormal(SamplerTexture0, tcoords0, IS_NORMAL_DXT5_0);
+    float3 n1 = getPixelNormal(SamplerTexture1, tcoords1, IS_NORMAL_DXT5_1);
+    float3 n2 = getPixelNormal(SamplerTexture2, tcoords2, IS_NORMAL_DXT5_2);
+
+    float3 normal = normalize(n0 + n1 + n2);
+    
+    float refrs = RefrScale / eyeDist;
+    float2 refrVec = normal.xy * float2(refrs, -refrs);
+    float2 texproj = clipPos.xy / clipPos.w;
+    float4 refrCol = tex2D(SamplerRefraction, texproj + refrVec);
+    
+    return CustomColor * refrCol;
+    
+#else
+    //-----------------------------------------------------------------
+    // COLORS
+    //-----------------------------------------------------------------
+
+    float4 c0 = tex2D(SamplerTexture0, tcoords0);
+    float4 c1 = tex2D(SamplerTexture1, tcoords1);
+    float4 c2 = tex2D(SamplerTexture2, tcoords2);
+    
+#if FLAG_ADD_12
+    float4 r12 = c1 + c2;
+#else
+    float4 r12 = c1 * c2;
+#endif
+    
+#if FLAG_ADD_01
+    float4 r012 = c0 + r12;
+#else
+    float4 r012 = c0 * r12;
+#endif
+
+    float4 result = CustomColor * r012;
+    result.a *= fog;
+    
+    return result;
+#endif
+}

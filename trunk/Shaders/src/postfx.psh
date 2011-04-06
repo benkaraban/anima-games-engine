@@ -1,0 +1,23 @@
+#include "tools.sh"
+
+float BlurFactor;
+float Saturation;
+float4 Fade;
+
+sampler2D SamplerTexture;
+sampler2D SamplerBlur;
+
+float4 ps_main(
+     float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    float4 basec = tex2D(SamplerTexture, texcoords);
+    float4 blurc = tex2D(SamplerBlur, texcoords);
+    
+    float4 result = lerp(basec, blurc, BlurFactor);
+    float lum = luminance(result.rgb);
+    result.rgb = lerp(lum, result.rgb, Saturation);
+    result.rgb = lerp(result.rgb, Fade.rgb, Fade.a);
+    
+    return result;
+}

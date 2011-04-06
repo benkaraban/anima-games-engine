@@ -1,0 +1,47 @@
+float4 FogColor;
+float4 MainLightAmbient;
+
+sampler2D SamplerDiffuse;
+sampler2D SamplerNormal;
+
+
+
+float4 ps_main(
+    float2 texcoords   : TEXCOORD0,
+    float3 halfVector  : TEXCOORD1,
+    float3 lightDir    : TEXCOORD2,
+    float4 normalFog   : TEXCOORD3,
+    float4 IN_diffuse  : COLOR0,
+    float4 IN_specular : COLOR1
+) : COLOR0
+{
+    float4 mat_ambient = float4(0.9f, 0.9f, 0.9f, 1.0f);
+    float mat_shininess = 50.0f;
+    
+    float4 light_ambient = MainLightAmbient;
+    float4 global_ambient = float4(0.85f, 0.85f, 0.85f, 1.0f);
+    
+   	
+    float4 tsn = tex2D(SamplerNormal, texcoords);
+    tsn = 2.0 * (tsn - 0.5);
+    tsn.xy = tsn.ga;
+    tsn.z = sqrt(1.0 - (tsn.x * tsn.x + tsn.y * tsn.y));
+    
+    float3 n = float3(tsn.r, tsn.g, tsn.b);
+    float3 h = normalize(halfVector);
+    float3 l = normalize(lightDir);
+    
+    float nDotL = saturate(dot(n, l));
+    float nDotH = saturate(dot(n, h));
+    float power = (nDotL == 0.0f) ? 0.0f : pow(nDotH, mat_shininess);
+                   
+    float4 color = (mat_ambient * (global_ambient + light_ambient)) +
+                   (IN_diffuse * nDotL) + (IN_specular * power);
+
+    float4 result =  color * tex2D(SamplerDiffuse, texcoords);
+    float4 result2 = lerp(result, FogColor, normalFog.w);
+    result2.a = result.a;
+    return result2;
+  
+}
+

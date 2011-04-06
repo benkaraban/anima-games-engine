@@ -1,0 +1,46 @@
+
+#define HQ_PREVIEW_FLAG         1
+#define ULTRA_HQ_FOR_LIGHTMAP   1
+
+#include <lighting.sh>
+#include <shadows.sh>
+#include <tools.sh>
+
+sampler2D SamplerNormal;
+
+float4 ps_main(
+     float3 worldPos    : TEXCOORD0,
+     float3 normal      : TEXCOORD1,
+     float2 texcoords   : TEXCOORD2,
+
+#if TSN_FLAG || DEBUG_FLAG
+     float3 tangent     : TEXCOORD4,
+     float3 bitangent   : TEXCOORD5,
+#endif
+
+     float3 eye         : TEXCOORD6,
+     float4 lightPosS   : TEXCOORD7
+) : COLOR0
+{
+    float4 position = float4(worldPos, 1.0);
+    
+#if TSN_FLAG || DEBUG_FLAG
+        float3 T = normalize(tangent);
+        float3 B = normalize(bitangent);
+        float3 N = normalize(normal);
+        
+        float3 tsn = getPixelNormal(SamplerNormal, texcoords);
+        normal = normalize(tsn.x * T + tsn.y * B + tsn.z * N);
+#else
+        normal = normalize(normal);
+#endif
+    
+    float4 mat = float4(1.0, 1.0, 1.0, 1.0);
+    float staticShadowVal = staticShadowTerm(lightPosS);
+    LightContrib lighting = lightingTerm(normal, eye, worldPos, mat, mat, 1.0, texcoords, staticShadowVal);
+    
+    float4 result = lighting.diffuse;
+    result.a = 1.0;
+    
+    return result;
+}

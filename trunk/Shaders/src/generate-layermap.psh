@@ -1,0 +1,255 @@
+#include <tools.sh>
+
+const int MAP_TYPE_DIFFUSE      = 0;
+const int MAP_TYPE_NORMAL       = 1;
+const int MAP_TYPE_DISPLACEMENT = 2;
+
+float3 MinPos;
+float3 RangePos;
+
+float4 GenerateU0;
+float4 GenerateU1;
+float4 GenerateU2;
+float4 GenerateU3;
+float4 GenerateU4;
+float4 GenerateU5;
+float4 GenerateU6;
+float4 GenerateU7;
+
+float4 GenerateV0;
+float4 GenerateV1;
+float4 GenerateV2;
+float4 GenerateV3;
+float4 GenerateV4;
+float4 GenerateV5;
+float4 GenerateV6;
+float4 GenerateV7;
+
+float4 Color0;
+float4 Color1;
+float4 Color2;
+float4 Color3;
+float4 Color4;
+float4 Color5;
+float4 Color6;
+float4 Color7;
+
+float MaskContrast1;
+float MaskContrast2;
+float MaskContrast3;
+float MaskContrast4;
+float MaskContrast5;
+float MaskContrast6;
+float MaskContrast7;
+
+float NormalStrength0;
+float NormalStrength1;
+float NormalStrength2;
+float NormalStrength3;
+float NormalStrength4;
+float NormalStrength5;
+float NormalStrength6;
+float NormalStrength7;
+
+float MapType0;
+float MapType1;
+float MapType2;
+float MapType3;
+float MapType4;
+float MapType5;
+float MapType6;
+float MapType7;
+
+float SamplerSize0;
+float SamplerSize1;
+float SamplerSize2;
+float SamplerSize3;
+float SamplerSize4;
+float SamplerSize5;
+float SamplerSize6;
+float SamplerSize7;
+
+float4x4 MatRotationLayer;
+
+sampler2D SamplerSource0;
+sampler2D SamplerSource1;
+sampler2D SamplerSource2;
+sampler2D SamplerSource3;
+sampler2D SamplerSource4;
+sampler2D SamplerSource5;
+sampler2D SamplerSource6;
+sampler2D SamplerSource7;
+
+sampler2D SamplerMask1;
+sampler2D SamplerMask2;
+sampler2D SamplerMask3;
+sampler2D SamplerMask4;
+sampler2D SamplerMask5;
+sampler2D SamplerMask6;
+sampler2D SamplerMask7;
+
+bool IsDXT5Norm0 : register(b0);
+bool IsDXT5Norm1 : register(b1);
+bool IsDXT5Norm2 : register(b2);
+bool IsDXT5Norm3 : register(b3);
+bool IsDXT5Norm4 : register(b4);
+bool IsDXT5Norm5 : register(b5);
+bool IsDXT5Norm6 : register(b6);
+bool IsDXT5Norm7 : register(b7);
+
+bool IsNormalMap : register(b8);
+bool IsChain : register(b9);
+bool IsLayer1DetailLayer : register(b10);
+
+
+float4 displacementMapToNormal(sampler2D displacementSampler, float2 uv, float normalSgth, float texSize)
+{
+    float c = abs(tex2D (displacementSampler, uv).x);
+
+    float tl = abs(tex2D (displacementSampler, uv + texSize * mul(MatRotationLayer, float2(-1, -1))).x);   // top left
+    float  l = abs(tex2D (displacementSampler, uv + texSize * mul(MatRotationLayer, float2(-1,  0))).x);   // left
+    float bl = abs(tex2D (displacementSampler, uv + texSize * mul(MatRotationLayer, float2(-1,  1))).x);   // bottom left
+    float  t = abs(tex2D (displacementSampler, uv + texSize * mul(MatRotationLayer, float2( 0, -1))).x);   // top
+    float  b = abs(tex2D (displacementSampler, uv + texSize * mul(MatRotationLayer, float2( 0,  1))).x);   // bottom
+    float tr = abs(tex2D (displacementSampler, uv + texSize * mul(MatRotationLayer, float2( 1, -1))).x);   // top right
+    float  r = abs(tex2D (displacementSampler, uv + texSize * mul(MatRotationLayer, float2( 1,  0))).x);   // right
+    float br = abs(tex2D (displacementSampler, uv + texSize * mul(MatRotationLayer, float2( 1,  1))).x);   // bottom right
+
+    //           -1 0 1 
+    //           -2 0 2
+    //           -1 0 1
+    float dX = tr + 2*r + br -tl - 2*l - bl;
+
+    //           -1 -2 -1 
+    //            0  0  0
+    //            1  2  1
+    float dY = bl + 2*b + br -tl - 2*t - tr;
+
+    // normal sur [-1 1]
+    float4 N = float4(normalize(float3(dX, dY, 1.0f / normalSgth)), 1.0f);
+    return N;
+}
+
+
+float computeContrast(float color, float contrast)
+{
+    return clamp(color * (1.0+contrast)/1.0, 0.0, 1.0); 
+}
+
+float computeBlend(float4 maskColor, float contrast, float alphaDistribution, float alphaGlobal)
+{
+    return (computeContrast(maskColor.r * alphaDistribution, contrast) * alphaGlobal);
+}
+
+float4 getTex(sampler2D s, float2 t, float4 c, bool isDXT5)
+{
+    float4 ret;
+    
+    if(IsNormalMap)
+    {
+        float4 n = expand(tex2D(s, t));
+
+        if(isDXT5)
+        {
+            n.xy = n.ag;
+            n.z = sqrt(1.0 - (n.x * n.x + n.y * n.y));
+        }
+        
+        ret = n;
+    }
+    else
+        ret = tex2D(s, t) * c;
+       
+    
+    return ret;
+}
+
+
+float4 computeLayerValue(float4 oColor, sampler2D samplerTexLayer, float2 uvTexLayer, sampler2D samplerMask, float2 uvMask, bool IsDXT5Norm, 
+                         float maskCont, float normalSgth, float type, float4 color, float texSize)
+{
+    float4 sourceTexture = tex2D(samplerTexLayer, uvTexLayer);
+    float  maskValue     = computeBlend(tex2D(samplerMask, uvMask), maskCont, sourceTexture.a, color.a);
+    
+    float4 nColor;
+    if (type > 1.5)
+    {
+        nColor = displacementMapToNormal(samplerTexLayer, uvTexLayer, normalSgth, texSize);
+    }
+    else
+    {
+        nColor = getTex(samplerTexLayer, uvTexLayer, color, IsDXT5Norm);
+    }
+    
+    return lerp(oColor, nColor, maskValue);
+}
+
+
+void ps_main(
+     float3 worldPos   : TEXCOORD0,
+
+     float3 normal     : TEXCOORD1,
+     float3 tangent    : TEXCOORD4,
+     float3 bitangent  : TEXCOORD5,
+
+     float2 origTexc   : TEXCOORD2,
+
+ out float4 oColor     : COLOR0
+)
+{
+    float maskValue;
+    float4 sourceTexture;
+    float4 worldPosH = float4(worldPos, 1.0);
+    float3 normPos = (worldPosH - MinPos) * RangePos;
+    float2 tc = float2(normPos.x, 1.0 - normPos.z);
+    
+    float2 t0 = float2(dot(GenerateU0, worldPosH), dot(GenerateV0, worldPosH));
+    float2 t1 = float2(dot(GenerateU1, worldPosH), dot(GenerateV1, worldPosH));
+    float2 t2 = float2(dot(GenerateU2, worldPosH), dot(GenerateV2, worldPosH));
+    float2 t3 = float2(dot(GenerateU3, worldPosH), dot(GenerateV3, worldPosH));
+    float2 t4 = float2(dot(GenerateU4, worldPosH), dot(GenerateV4, worldPosH));
+    float2 t5 = float2(dot(GenerateU5, worldPosH), dot(GenerateV5, worldPosH));
+    float2 t6 = float2(dot(GenerateU6, worldPosH), dot(GenerateV6, worldPosH));
+    float2 t7 = float2(dot(GenerateU7, worldPosH), dot(GenerateV7, worldPosH));
+
+    if(IsChain)
+    {
+        oColor = getTex(SamplerSource0, origTexc, Color0, IsDXT5Norm0);
+    }
+    else
+    {
+        oColor = getTex(SamplerSource0, t0, Color0, IsDXT5Norm0);
+    }
+
+    if(IsLayer1DetailLayer)
+    {
+        float4 color1 = getTex(SamplerSource1, t1, Color1, IsDXT5Norm1);
+        
+        float3 wsn = float3(color1.x, color1.z, color1.y);
+        
+        float3 T = normalize(tangent);
+        float3 B = normalize(bitangent);
+        float3 N = normalize(normal);
+
+        float3 tsn = normalize(float3(dot(wsn, T), dot(wsn, B), dot(wsn, N)));
+        float4 layer1c = float4(tsn, 1.0);
+
+        oColor = lerp(oColor, layer1c, Color1.a);
+    }
+    else
+    {
+        oColor = computeLayerValue(oColor, SamplerSource1, t1, SamplerMask1, tc, IsDXT5Norm1, MaskContrast1, NormalStrength1, MapType1, Color1, SamplerSize1);
+    }
+    
+    oColor = computeLayerValue(oColor, SamplerSource2, t2, SamplerMask2, tc, IsDXT5Norm2, MaskContrast2, NormalStrength2, MapType2, Color2, SamplerSize2);
+    oColor = computeLayerValue(oColor, SamplerSource3, t3, SamplerMask3, tc, IsDXT5Norm3, MaskContrast3, NormalStrength3, MapType3, Color3, SamplerSize3);
+    oColor = computeLayerValue(oColor, SamplerSource4, t4, SamplerMask4, tc, IsDXT5Norm4, MaskContrast4, NormalStrength4, MapType4, Color4, SamplerSize4);
+    oColor = computeLayerValue(oColor, SamplerSource5, t5, SamplerMask5, tc, IsDXT5Norm5, MaskContrast5, NormalStrength5, MapType5, Color5, SamplerSize5);
+    oColor = computeLayerValue(oColor, SamplerSource6, t6, SamplerMask6, tc, IsDXT5Norm6, MaskContrast6, NormalStrength6, MapType6, Color6, SamplerSize6);
+    oColor = computeLayerValue(oColor, SamplerSource7, t7, SamplerMask7, tc, IsDXT5Norm7, MaskContrast7, NormalStrength7, MapType7, Color7, SamplerSize7);
+    
+    
+    if(IsNormalMap)
+        oColor = float4(pack(normalize(oColor.rgb)), 1.0);
+}
+

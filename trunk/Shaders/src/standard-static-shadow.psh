@@ -1,0 +1,7 @@
+
+float4 ps_main(
+    float2 depth  : TEXCOORD0
+) : COLOR0
+{
+    return depth.x / depth.y;
+}

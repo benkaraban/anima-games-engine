@@ -1,0 +1,8 @@
+float4 MatGlow;
+
+float4 ps_main(
+   float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    return MatGlow * MatGlow.a;
+}

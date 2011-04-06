@@ -1,0 +1,47 @@
+
+sampler2D SamplerNormal;
+
+bool IsNormalMapDXT5 : register(b0);
+bool IsNormalMapOn   : register(b1);
+
+float3 getPixelNormal(float2 texcoords)
+{
+   float4 n = tex2D(SamplerNormal, texcoords);
+   n = 2.0 * (n - 0.5);
+
+   if(IsNormalMapDXT5)
+   {
+       n.xy = n.ag;
+       n.z = sqrt(1.0 - (n.x * n.x + n.y * n.y));
+   }
+   
+   return normalize(n.xyz);
+}
+
+void ps_main(
+     float3 worldPos    : TEXCOORD0,
+     float3 normal      : TEXCOORD1,
+     float2 texcoords   : TEXCOORD2,
+     float3 tangent     : TEXCOORD4,
+     float3 bitangent   : TEXCOORD5,
+
+ out float4 oPosition   : COLOR0,
+ out float4 oNormal     : COLOR1
+)
+{
+    oPosition = float4(worldPos, 1.0);
+    
+    if(IsNormalMapOn)
+    {
+        float3 T = normalize(tangent);
+        float3 B = normalize(bitangent);
+        float3 N = normalize(normal);
+        
+        float3 tsn = getPixelNormal(texcoords);
+        oNormal = float4(normalize(tsn.x * T + tsn.y * B + tsn.z * N), 1.0);
+    }
+    else
+    {
+        oNormal = float4(normalize(normal), 1.0);
+    }
+}

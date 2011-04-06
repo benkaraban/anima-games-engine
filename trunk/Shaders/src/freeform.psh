@@ -1,0 +1,33 @@
+#include <tools.sh>
+
+sampler2D SamplerColor;
+sampler2D SamplerNormal;
+sampler2D SamplerRefraction;
+
+float RefrScale;
+
+float4 ps_main(
+    float2 texcoords : TEXCOORD0,
+   
+#if REFRACTION_FLAG
+    float4 clipPos   : TEXCOORD1,
+    float  eyeDist   : TEXCOORD2,
+#endif
+
+    float4 color     : COLOR0
+   
+) : COLOR0
+{
+#if REFRACTION_FLAG
+    float refrs = RefrScale * color.a / eyeDist;
+    float3 normal = getPixelNormal(SamplerNormal, texcoords);
+    float2 refrVec = normal.xy * float2(refrs, -refrs);
+    float2 texproj = clipPos.xy / clipPos.w;
+    float4 refrCol = tex2D(SamplerRefraction, texproj + refrVec);
+    
+    return color * refrCol + float4(1.0, 0.0, 0.0, 1.0);
+#else
+    return color * tex2D(SamplerColor, texcoords);
+#endif
+
+}

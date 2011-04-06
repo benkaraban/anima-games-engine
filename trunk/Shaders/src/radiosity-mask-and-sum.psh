@@ -1,0 +1,26 @@
+
+sampler2D SamplerFront;
+sampler2D SamplerUp;
+sampler2D SamplerDown;
+sampler2D SamplerLeft;
+sampler2D SamplerRight;
+
+sampler2D SamplerMaskFront;
+sampler2D SamplerMaskUp;
+sampler2D SamplerMaskDown;
+sampler2D SamplerMaskLeft;
+sampler2D SamplerMaskRight;
+
+float4 ps_main(
+    float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    float4 result = float4(0.0, 0.0, 0.0, 0.0);
+    result += tex2D(SamplerFront, texcoords) * tex2D(SamplerMaskFront, texcoords);
+    result += tex2D(SamplerUp, texcoords) * tex2D(SamplerMaskUp, texcoords);
+    result += tex2D(SamplerDown, texcoords) * tex2D(SamplerMaskDown, texcoords);
+    result += tex2D(SamplerLeft, texcoords) * tex2D(SamplerMaskLeft, texcoords);
+    result += tex2D(SamplerRight, texcoords) * tex2D(SamplerMaskRight, texcoords);
+
+    return result;
+}

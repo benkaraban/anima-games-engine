@@ -1,0 +1,34 @@
+
+float4 MatEmissive;
+float4 MatDiffuse;
+float4 MatSpecular;
+float4 MatReflexions;
+float  MatShininess;
+
+float LightMapReflexion;
+
+sampler2D SamplerDiffuse;
+sampler2D SamplerLight;
+
+
+float4 ps_main(
+   float4 tcoords  : TEXCOORD0
+) : COLOR0
+{
+#if STATIC_PIXEL_LIGHTING_FLAG
+    float4 incidentLight = tex2D(SamplerLight, tcoords.zw);
+
+    float4 mdiffuse = MatDiffuse * tex2D(SamplerDiffuse, tcoords.xy);
+    float4 excidentLight = MatEmissive + LightMapReflexion * mdiffuse * incidentLight;
+#else
+#error
+#endif
+
+#if MODE_BACK
+    return float4(0.0, 0.0, 0.0, 1.0);
+#else
+    return float4(excidentLight.xyz, 1.0);
+#endif
+}
+
+

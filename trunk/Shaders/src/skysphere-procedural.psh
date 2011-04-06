@@ -1,0 +1,72 @@
+float3 MainLightDir;
+float4 SunColor;
+float4 SkyColor;
+
+#define PI 3.1415
+
+float4 ps_main(
+ float3 normal     : TEXCOORD0
+) : COLOR0
+{
+    normal = normalize(normal);
+    float3 light = -normalize(MainLightDir);
+
+    float2 asinnl = asin(float2(normal.y, light.y));
+
+    float teta = 0.5*PI - asinnl.x;
+    float S = 0.5*PI - asinnl.y;
+    float gamma = acos(dot(normal, light));
+
+    float3 cosgts = cos(float3(gamma, teta, S));
+    
+    float cosg = cosgts.x;
+    float cost = cosgts.y;
+    float coss = cosgts.z;
+    
+    float cosg2 = cosg * cosg;
+    float coss2 = coss * coss;
+    
+#if LIGHTING_MODEL == 0 // LIGHTING_MODEL_FOGGY
+        
+        float teta2 = PI - asin(normal.y);
+        float L = (1.0 + 2.0 * sin(teta2)) / 3.0;
+        
+#elif LIGHTING_MODEL == 1 // LIGHTING_MODEL_CLOUDY
+
+        cost = abs(cost);
+        float num = (0.526 + 5.0 * exp(-1.5 * gamma)) * 
+            (1.0 - min(1.0, exp(-0.8 / cost)));
+        
+        float denum = (0.526 + 5.0 * exp(-1.5 * S)) *
+            (1.0 - min(1.0, exp(-0.8)));
+        
+        float maxNum = (0.526 + 5.0 * exp(-1.5 * 0.0)) * 
+            (1.0 - min(1.0, exp(-0.8 / coss)));
+            
+        float maxValue = maxNum / denum;
+        float L = (num / denum) / maxValue;
+
+#elif LIGHTING_MODEL == 2 // LIGHTING_MODEL_CLEAR_SKY
+
+        cost = abs(cost);
+        float num = (0.91 + 10.0 * exp(-3.0 * gamma) + 0.45 * cosg2) * 
+            (1.0 - min(1.0, exp(-0.32 / cost)));
+        
+        float denum = (0.91 + 10.0 * exp(-3.0 * S) + 0.45 * coss2) *
+            (1.0 - min(1.0, exp(-0.32)));
+        
+        float maxNum = (0.91 + 10.0 * exp(-3.0 * 0.0) + 0.45 * 1.0) * 
+            (1.0 - min(1.0, exp(-0.32 / coss)));
+            
+        float maxValue = maxNum / denum;
+        float L = (num / denum) / maxValue;
+
+#else
+#error
+#endif
+
+    L = max(0.0, L);
+
+    return float4(L * SunColor.rgb + SkyColor.rgb, 1.0);
+}
+

@@ -1,0 +1,19 @@
+float4x4 Rotation;
+
+float4 ps_main(
+    float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    float2 disp = 2.0 * (texcoords - 0.5);
+    float3 normal = float3(0.0, 0.0, 1.0) + float3(disp, 0.0);
+
+    normal = normalize(normal);
+    float3 wnormal = mul(Rotation, float4(normal, 1.0)).xyz;
+    
+    float shapeCompensation = dot(normal, float3(0.0, 0.0, 1.0));
+    float cosineLaw = dot(wnormal, float3(0.0, 0.0, 1.0));
+
+    float r = clamp(cosineLaw * shapeCompensation, 0.0, 1.0);
+
+    return float4(r, r, r, 1.0);
+}

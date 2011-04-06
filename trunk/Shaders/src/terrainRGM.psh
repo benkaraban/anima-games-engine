@@ -1,0 +1,26 @@
+float4 Color;
+
+sampler2D SamplerColor;
+sampler2D SamplerNormal;
+
+float4 ps_main(
+    float2 texcoords : TEXCOORD0,
+    float2 texcoordsNormal : TEXCOORD1
+) : COLOR0
+{
+    float4 normalColor = tex2D(SamplerNormal, texcoordsNormal);
+    float3 normal = float3(normalColor.r, normalColor.g, normalColor.b);
+    normal = normalize(normal);
+    float3 LightDirection = float3(-0.2, 0.4, 0.5);
+    LightDirection = normalize(LightDirection);
+    float s = clamp(dot(normal, LightDirection), 0, 1); 
+    
+    //return Color * tex2D(SamplerColor, texcoords) * s;
+    float4 ret = Color * tex2D(SamplerColor, texcoords) * s;
+   /* ret.r=normalColor.r;
+    ret.g=normalColor.g;
+    ret.b=normalColor.b;*/
+
+    return ret;
+}
+

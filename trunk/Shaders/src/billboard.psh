@@ -1,0 +1,53 @@
+#include <tools.sh>
+
+sampler2D SamplerColor;
+sampler2D SamplerNormal;
+sampler2D SamplerRefraction;
+
+float RefrScale;
+
+float4 ps_main(
+
+#if SPRITE_SMOOTH_FLAG
+    float4 texcoords : TEXCOORD0,
+    float  texAlpha  : TEXCOORD3,
+#else
+    float2 texcoords : TEXCOORD0,
+#endif
+   
+#if REFRACTION_FLAG
+    float4 clipPos   : TEXCOORD1,
+    float  eyeDist   : TEXCOORD2,
+#endif
+
+    float4 color     : COLOR0
+   
+) : COLOR0
+{
+#if REFRACTION_FLAG
+    float refrs = RefrScale * color.a / eyeDist;
+    float4 baseColor = tex2D(SamplerNormal, texcoords);
+    float3 normal = expand(baseColor);
+    float2 refrVec = normal.xy * float2(refrs, -refrs);
+    float2 texproj = clipPos.xy / clipPos.w;
+    float4 refrCol = tex2D(SamplerRefraction, texproj + refrVec);
+    refrCol.rgb *= color.rgb;
+    refrCol.a = baseColor.a;
+    
+    return refrCol;
+#else
+
+// COLOR
+#if SPRITE_SMOOTH_FLAG
+    float4 c1 = tex2D(SamplerColor, texcoords.xy);
+    float4 c2 = tex2D(SamplerColor, texcoords.zw);
+    
+    float4 r = color * lerp(c1, c2, texAlpha);
+    return r;
+#else
+    return color * tex2D(SamplerColor, texcoords);
+#endif
+
+#endif
+
+}

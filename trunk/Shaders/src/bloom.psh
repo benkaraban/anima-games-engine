@@ -1,0 +1,16 @@
+#include "tools.sh"
+
+float BloomThreshold;
+float BloomFactor;
+
+sampler2D SamplerTexture;
+
+float4 ps_main(
+     float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    float4 c = tex2D(SamplerTexture, texcoords);
+    float l = luminance(c.rgb);
+    float m = (l - BloomThreshold) * BloomFactor;
+    return m * c;
+}

@@ -1,0 +1,43 @@
+float2 SourceSize;
+
+#define SourceMipLevel -1.0
+
+sampler2D SamplerImage;
+
+bool IsAlphaWeighted : register(b0);
+
+float4 ps_main(
+    float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+    float2 unnormalized = texcoords * SourceSize;
+    float4 v00 = tex2Dbias(SamplerImage, float4((unnormalized + float2(-0.5, -0.5)) / SourceSize, 0.0, SourceMipLevel));
+    float4 v10 = tex2Dbias(SamplerImage, float4((unnormalized + float2( 0.5, -0.5)) / SourceSize, 0.0, SourceMipLevel));
+    float4 v01 = tex2Dbias(SamplerImage, float4((unnormalized + float2(-0.5,  0.5)) / SourceSize, 0.0, SourceMipLevel));
+    float4 v11 = tex2Dbias(SamplerImage, float4((unnormalized + float2( 0.5,  0.5)) / SourceSize, 0.0, SourceMipLevel));
+
+    if(IsAlphaWeighted)
+    {
+        float alphaSum = v00.a + v01.a + v10.a + v11.a;
+        
+        if(alphaSum == 0.0)
+        {
+            return float4(0.0, 0.0, 0.0, 0.0);
+        }
+        else
+        {
+            v00.rgb *= v00.a;
+            v10.rgb *= v10.a;
+            v01.rgb *= v01.a;
+            v11.rgb *= v11.a;
+            float4 result;
+            result.rgb = (v00.rgb + v10.rgb + v01.rgb + v11.rgb) * (1.0 / max(0.001, alphaSum));
+            result.a   = 1.0;
+            return result;
+        }
+    }
+    else
+    {
+        return 0.25 * (v00 + v10 + v01 + v11);
+    }
+}

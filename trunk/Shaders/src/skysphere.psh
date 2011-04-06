@@ -1,0 +1,13 @@
+float4 Color;
+float4 FogColor;
+float  FogOpacity;
+
+sampler2D SamplerColor;
+
+float4 ps_main(
+   float2 texcoords : TEXCOORD0
+) : COLOR0
+{
+   return lerp(Color * tex2D(SamplerColor, texcoords), FogColor, FogOpacity);
+}
+
