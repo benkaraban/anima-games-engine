@@ -1,0 +1,1 @@
+This is Anima Games engine, used to create the game "Chrono Rage" and the project "Heirs Of Olympus".
